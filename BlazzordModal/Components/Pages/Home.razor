@@ -1,0 +1,123 @@
+﻿﻿@using BlazzordModal.Components.Shared
+@using DataAcessLibrary
+@using DataAcessLibrary.Models
+
+@page "/"
+<PageTitle>Home</PageTitle>
+@inject IUserData _db
+
+<h4>Users (@count)</h4>
+<hr class="mb-5" />
+<button @onclick="(() => AddUser())" class="btn btn-primary">Add user</button>
+
+@if (users is null)
+{
+	<p><em>Loading.....</em></p>
+}
+else
+{
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Username</th>
+				<th>Password</th>
+				<th>Date Created</th>
+				<th>Date Updated</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var user in users)
+			{
+				<tr>
+					<td>@user.username</td>
+					<td>@user.password</td>
+					<td>@user.datecreated</td>
+					<td>@user.dateupdated</td>
+					<td>
+						<button @onclick="(() => DeleteUser(user.username))" class="btn btn-danger">Delete</button>
+						<button @onclick="(() => EditUser(user))" class="btn btn-warning">Edit</button>
+
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	[CascadingParameter] public IModalService Modal { get; set; } = default!;
+	private List<UserModel> users;
+	private int count = 0;
+
+	protected override async Task OnInitializedAsync()
+	{
+		users = await _db.GetUsers();
+		count = users.Count;
+	}
+
+	private ModalOptions options = new ModalOptions()
+		{
+			Position = ModalPosition.Middle
+		};
+
+	private async Task DeleteUser(string username)
+	{
+		UserModel u = new UserModel
+			{
+				username = username
+			};
+
+		var parameters = new ModalParameters()
+		.Add(@"Message", "Are you sure to delete user : " + u.username + " ?");
+		var modal = Modal.Show<Confirm>("Delete User", parameters);
+		var result = await modal.Result;
+
+		if (result.Confirmed)
+		{
+			await _db.deleteUser(u);
+			users = await _db.GetUsers();
+			count = users.Count;
+		}
+		
+	}
+
+	public async Task AddUser()
+	{
+		var modal = Modal.Show<AddUserComponent>("Add new User");
+		var result = await modal.Result;
+
+		// only runs after completion
+		if (result.Confirmed)
+		{
+			// do what you need to do to update the data that will be displayed
+			// if this method is called from a UI event the component will re-render automatically
+			StateHasChanged();
+			users = await _db.GetUsers();
+			count = users.Count;
+			Console.WriteLine("Confirmed");
+		}
+	}
+
+	public async Task EditUser(UserModel u)
+	{
+		var parameters = new ModalParameters()
+		.Add("username", u.username)
+		.Add("password", u.password);
+
+		var modal = Modal.Show<AddUserComponent>("Edit User", parameters);
+		var result = await modal.Result;
+
+		 if (result.Confirmed)
+		{
+			// do what you need to do to update the data that will be displayed
+			// if this method is called from a UI event the component will re-render automatically
+			users = await _db.GetUsers();
+			count = users.Count;
+			Console.WriteLine("Confirmed");
+		}
+
+	}
+
+	
+}

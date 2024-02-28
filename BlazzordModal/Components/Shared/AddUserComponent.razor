@@ -1,0 +1,68 @@
+﻿@using Models
+@using DataAcessLibrary
+@using DataAcessLibrary.Models
+
+@inject IUserData _db
+
+<EditForm FormName="newuser" Model="@addUserModel" OnValidSubmit="@AddUser" class="align-content-center">
+	<DataAnnotationsValidator />
+
+	<div class="row pb-2">
+		<label class="col-3">Username</label>
+		<InputText class="col-9" id="username" @bind-Value="addUserModel.username" />
+	</div>
+	
+	<div class="row pb-2">
+		<label class="col-3">Password</label>
+		<InputText class="col-9" id="password" @bind-Value="addUserModel.password" />
+	</div>
+	<br />
+	<ValidationSummary />
+	<div class="row pt-5">
+		@if(username is null){
+			<button type="submit" class="btn btn-primary col">Submit</button>
+		}
+		else
+		{
+			<button type="submit" class="btn btn-primary col">Update</button>
+		}
+	</div>
+	
+</EditForm>
+
+@code {
+	[CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; } = default!;
+	[Parameter] public string? username { get; set; }
+	[Parameter] public string? password { get; set; }
+	private AddUserFormModel addUserModel = new AddUserFormModel();
+
+	async Task Close() => await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+	async Task Cancel() => await BlazoredModal.CancelAsync();
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (username is not null && username.Length > 0)
+		{
+			addUserModel.username = username;
+			addUserModel.password = password;
+		}
+		
+	}
+
+	private async Task AddUser()
+	{
+		UserModel u = new UserModel
+			{
+				username = addUserModel.username,
+				password = addUserModel.password,
+			};
+
+
+		await _db.InsertUser(u);
+
+		addUserModel = new AddUserFormModel();
+		await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+
+	}
+
+}
